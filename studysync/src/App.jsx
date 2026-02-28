@@ -457,20 +457,39 @@ function Onboarding({ onDone }) {
             </>}
 
             {step === 4 && <>
-              <div style={{ color: T.text, fontSize: 24, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 24 }}>How do you study best?</div>
+              <div style={{ color: T.text, fontSize: 24, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 8 }}>How do you study best?</div>
+              <div style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>Select all that apply</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {styleOptions.map(opt => (
-                  <button key={opt} onClick={() => setData({ ...data, style: opt })} style={{
-                    padding: "16px 14px", borderRadius: 14, cursor: "pointer", textAlign: "left",
-                    fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
-                    border: `1.5px solid ${data.style === opt ? T.accent : T.cardBorder}`,
-                    background: data.style === opt ? T.accentDim : T.surface,
-                    color: data.style === opt ? T.accentText : T.subtext,
-                    transition: "all 0.15s",
-                  }}>
-                    <div style={{ fontSize: 20, marginBottom: 6 }}>{STYLE_EMOJI[opt]}</div>{opt}
-                  </button>
-                ))}
+                {styleOptions.map(opt => {
+                  const selected = data.style ? data.style.split(",").map(s => s.trim()).includes(opt) : false;
+                  const toggle = () => {
+                    const current = data.style ? data.style.split(",").map(s => s.trim()).filter(Boolean) : [];
+                    const updated = selected ? current.filter(s => s !== opt) : [...current, opt];
+                    setData({ ...data, style: updated.join(", ") });
+                  };
+                  return (
+                    <button key={opt} onClick={toggle} style={{
+                      padding: "16px 14px", borderRadius: 14, cursor: "pointer", textAlign: "left",
+                      fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+                      border: `1.5px solid ${selected ? T.accent : T.cardBorder}`,
+                      background: selected ? T.accentDim : T.surface,
+                      color: selected ? T.accentText : T.subtext,
+                      transition: "all 0.15s", position: "relative",
+                    }}>
+                      {selected && (
+                        <div style={{
+                          position: "absolute", top: 10, right: 10, width: 18, height: 18,
+                          borderRadius: 6, background: T.accent,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          <span style={{ color: "#13111C", fontSize: 10, fontWeight: 800 }}>✓</span>
+                        </div>
+                      )}
+                      <div style={{ fontSize: 20, marginBottom: 6 }}>{STYLE_EMOJI[opt]}</div>
+                      {opt}
+                    </button>
+                  );
+                })}
               </div>
             </>}
 
