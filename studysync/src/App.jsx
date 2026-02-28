@@ -1,35 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
-// ── Fixed StudySync Theme ──────────────────────────────────────────────────────
-// Soft, aesthetic, not bold. Lavender-indigo accent with warm neutrals.
 const DARK = {
-  bg: "#13111C",
-  surface: "#1C1A28",
-  card: "#211F2E",
-  cardBorder: "#2E2B3E",
-  accent: "#A78BFA",       // soft lavender
-  accentDim: "#2D1F4E",
-  accentText: "#C4B5FD",
-  teal: "#5EEAD4",         // soft teal for secondary highlights
-  text: "#EDE9FE",
-  subtext: "#A99EC4",
-  muted: "#6B6485",
-  danger: "#F87171",
+  bg: "#13111C", surface: "#1C1A28", card: "#211F2E", cardBorder: "#2E2B3E",
+  accent: "#A78BFA", accentDim: "#2D1F4E", accentText: "#C4B5FD",
+  teal: "#5EEAD4", tealDim: "#0D3330",
+  text: "#EDE9FE", subtext: "#A99EC4", muted: "#6B6485",
 };
-
 const LIGHT = {
-  bg: "#F7F5FF",
-  surface: "#EFECFF",
-  card: "#FFFFFF",
-  cardBorder: "#DDD8F5",
-  accent: "#7C3AED",       // deeper violet for contrast on white
-  accentDim: "#EDE9FE",
-  accentText: "#7C3AED",
-  teal: "#0D9488",
-  text: "#1E1A2E",
-  subtext: "#6D5FA0",
-  muted: "#9B91BE",
-  danger: "#DC2626",
+  bg: "#F7F5FF", surface: "#EFECFF", card: "#FFFFFF", cardBorder: "#DDD8F5",
+  accent: "#7C3AED", accentDim: "#EDE9FE", accentText: "#7C3AED",
+  teal: "#0D9488", tealDim: "#CCFBF1",
+  text: "#1E1A2E", subtext: "#6D5FA0", muted: "#9B91BE",
 };
 
 const SAMPLE_SESSIONS = [
@@ -42,18 +23,339 @@ const SAMPLE_SESSIONS = [
 ];
 
 const STYLE_EMOJI = {
-  "Practice Problems": "📝",
-  "Discussion-based": "💬",
-  "Visual / diagrams": "🖊️",
-  "Flashcards + quizzing": "🃏",
+  "Practice Problems": "📝", "Discussion-based": "💬",
+  "Visual / diagrams": "🖊️", "Flashcards + quizzing": "🃏",
 };
+
+// ── Smart Course Matching ──────────────────────────────────────────────────────
+// Returns sessions sorted: exact course match first, then by compatibility
+function getMatchedSessions(sessions, userCourses) {
+  const userCourseList = userCourses
+    .split(",")
+    .map(c => c.trim().toUpperCase())
+    .filter(Boolean);
+
+  return [...sessions].sort((a, b) => {
+    const aMatch = userCourseList.includes(a.course.toUpperCase());
+    const bMatch = userCourseList.includes(b.course.toUpperCase());
+    if (aMatch && !bMatch) return -1;
+    if (!aMatch && bMatch) return 1;
+    return b.compatibility - a.compatibility;
+  });
+}
+
+// ── Session Room ───────────────────────────────────────────────────────────────
+function SessionRoom({ session, user, onClose, T }) {
+  const [messages, setMessages] = useState([
+    { id: 1, sender: session.name, initials: session.initials, color: session.color, text: "Hey! Just grabbed a spot 👋", time: "2m ago", mine: false },
+    { id: 2, sender: session.name, initials: session.initials, color: session.color, text: `Ready to work on ${session.topic}. Where do you want to start?`, time: "1m ago", mine: false },
+  ]);
+  const [input, setInput] = useState("");
+  const [timerSecs, setTimerSecs] = useState(25 * 60);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [timerMode, setTimerMode] = useState("focus");
+  const [checklist, setChecklist] = useState([
+    { id: 1, text: "Review core concepts", done: false },
+    { id: 2, text: "Work through practice problems", done: false },
+    { id: 3, text: "Quiz each other", done: false },
+    { id: 4, text: "Summarize key takeaways", done: false },
+  ]);
+  const [onMyWay, setOnMyWay] = useState(false);
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    let interval;
+    if (timerRunning) {
+      interval = setInterval(() => {
+        setTimerSecs(s => {
+          if (s <= 1) {
+            setTimerRunning(false);
+            setTimerMode(m => m === "focus" ? "break" : "focus");
+            return s === 1 ? (timerMode === "focus" ? 5 * 60 : 25 * 60) : 0;
+          }
+          return s - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timerRunning, timerMode]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  function sendMessage() {
+    if (!input.trim()) return;
+    setMessages(m => [...m, {
+      id: Date.now(), sender: user.name,
+      initials: user.name[0].toUpperCase(), color: T.accent,
+      text: input.trim(), time: "just now", mine: true,
+    }]);
+    setInput("");
+
+    // Simulate reply after 1.5s
+    setTimeout(() => {
+      const replies = [
+        "Good point! Let me think about that...",
+        "Yeah exactly, that's what I got stuck on too",
+        "Can you explain that part again?",
+        "Got it! Moving on to the next one?",
+        "This is really helping, thanks!",
+      ];
+      setMessages(m => [...m, {
+        id: Date.now() + 1, sender: session.name,
+        initials: session.initials, color: session.color,
+        text: replies[Math.floor(Math.random() * replies.length)],
+        time: "just now", mine: false,
+      }]);
+    }, 1500);
+  }
+
+  const mins = String(Math.floor(timerSecs / 60)).padStart(2, "0");
+  const secs = String(timerSecs % 60).padStart(2, "0");
+  const timerProgress = timerMode === "focus"
+    ? timerSecs / (25 * 60)
+    : timerSecs / (5 * 60);
+  const circumference = 2 * Math.PI * 36;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "#00000099", zIndex: 200,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+    }}>
+      <div style={{
+        background: T.bg, borderRadius: 28, width: "100%", maxWidth: 920,
+        maxHeight: "90vh", display: "flex", flexDirection: "column",
+        border: `1px solid ${T.cardBorder}`, overflow: "hidden",
+      }}>
+
+        {/* Header */}
+        <div style={{
+          padding: "20px 28px", borderBottom: `1px solid ${T.cardBorder}`,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          background: T.card, flexShrink: 0,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{
+              width: 42, height: 42, borderRadius: 12, background: session.color + "22",
+              border: `1.5px solid ${session.color}66`, display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: 14, fontWeight: 700, color: session.color,
+              fontFamily: "'Syne', sans-serif",
+            }}>{session.initials}</div>
+            <div>
+              <div style={{ color: T.text, fontWeight: 700, fontSize: 16, fontFamily: "'Syne', sans-serif" }}>
+                {session.course} · {session.topic}
+              </div>
+              <div style={{ color: T.subtext, fontSize: 12, marginTop: 2 }}>
+                📍 {session.location} · with {session.name}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {/* On my way button */}
+            {!onMyWay && (
+              <button onClick={() => setOnMyWay(true)} style={{
+                padding: "7px 14px", borderRadius: 20, border: `1px solid ${T.teal}66`,
+                background: T.tealDim, color: T.teal, fontSize: 12, fontWeight: 600,
+                cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+              }}>🚶 I'm on my way</button>
+            )}
+            {onMyWay && (
+              <div style={{
+                padding: "7px 14px", borderRadius: 20, background: T.tealDim,
+                border: `1px solid ${T.teal}66`, color: T.teal, fontSize: 12, fontWeight: 600,
+              }}>✓ They know you're coming</div>
+            )}
+            <button onClick={onClose} style={{
+              background: T.surface, border: `1px solid ${T.cardBorder}`,
+              borderRadius: 10, width: 32, height: 32, cursor: "pointer",
+              color: T.muted, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
+            }}>✕</button>
+          </div>
+        </div>
+
+        {/* Body — 3 columns */}
+        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+
+          {/* LEFT: Chat */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", borderRight: `1px solid ${T.cardBorder}` }}>
+            <div style={{ padding: "12px 20px", borderBottom: `1px solid ${T.cardBorder}`, flexShrink: 0 }}>
+              <span style={{ color: T.subtext, fontSize: 12, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase" }}>💬 Session Chat</span>
+            </div>
+
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+              {messages.map(msg => (
+                <div key={msg.id} style={{
+                  display: "flex", gap: 10, flexDirection: msg.mine ? "row-reverse" : "row",
+                  alignItems: "flex-end",
+                }}>
+                  {!msg.mine && (
+                    <div style={{
+                      width: 30, height: 30, borderRadius: 8, background: msg.color + "22",
+                      border: `1px solid ${msg.color}55`, display: "flex", alignItems: "center",
+                      justifyContent: "center", fontSize: 11, fontWeight: 700, color: msg.color,
+                      flexShrink: 0,
+                    }}>{msg.initials}</div>
+                  )}
+                  <div style={{ maxWidth: "72%" }}>
+                    {!msg.mine && (
+                      <div style={{ color: T.muted, fontSize: 11, marginBottom: 4, marginLeft: 2 }}>{msg.sender}</div>
+                    )}
+                    <div style={{
+                      padding: "10px 14px", borderRadius: msg.mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+                      background: msg.mine ? T.accentDim : T.surface,
+                      border: `1px solid ${msg.mine ? T.accent + "44" : T.cardBorder}`,
+                      color: msg.mine ? T.accentText : T.text,
+                      fontSize: 13, lineHeight: 1.5,
+                    }}>{msg.text}</div>
+                    <div style={{ color: T.muted, fontSize: 10, marginTop: 3, textAlign: msg.mine ? "right" : "left", marginLeft: 2 }}>{msg.time}</div>
+                  </div>
+                </div>
+              ))}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Input */}
+            <div style={{ padding: "12px 16px", borderTop: `1px solid ${T.cardBorder}`, display: "flex", gap: 8, flexShrink: 0 }}>
+              <input
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && sendMessage()}
+                placeholder="Type a message..."
+                style={{
+                  flex: 1, padding: "10px 14px", borderRadius: 12,
+                  border: `1px solid ${T.cardBorder}`,
+                  background: T.surface, color: T.text, fontSize: 13,
+                  outline: "none", fontFamily: "'DM Sans', sans-serif",
+                }}
+              />
+              <button onClick={sendMessage} style={{
+                width: 40, height: 40, borderRadius: 12, border: "none",
+                background: T.accent, color: "#13111C", cursor: "pointer", fontSize: 16,
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>→</button>
+            </div>
+          </div>
+
+          {/* RIGHT: Timer + Checklist */}
+          <div style={{ width: 280, display: "flex", flexDirection: "column", flexShrink: 0 }}>
+
+            {/* Pomodoro Timer */}
+            <div style={{ padding: "20px", borderBottom: `1px solid ${T.cardBorder}` }}>
+              <div style={{ color: T.subtext, fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", marginBottom: 16 }}>
+                ⏱ {timerMode === "focus" ? "Focus Timer" : "Break Time"}
+              </div>
+
+              {/* Circular timer */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+                <div style={{ position: "relative", width: 100, height: 100 }}>
+                  <svg width="100" height="100" style={{ transform: "rotate(-90deg)" }}>
+                    <circle cx="50" cy="50" r="36" fill="none" stroke={T.cardBorder} strokeWidth="6" />
+                    <circle
+                      cx="50" cy="50" r="36" fill="none"
+                      stroke={timerMode === "focus" ? T.accent : T.teal}
+                      strokeWidth="6"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={circumference * (1 - timerProgress)}
+                      strokeLinecap="round"
+                      style={{ transition: "stroke-dashoffset 1s linear" }}
+                    />
+                  </svg>
+                  <div style={{
+                    position: "absolute", inset: 0, display: "flex", flexDirection: "column",
+                    alignItems: "center", justifyContent: "center",
+                  }}>
+                    <div style={{ color: T.text, fontSize: 20, fontWeight: 700, fontFamily: "'Syne', sans-serif" }}>{mins}:{secs}</div>
+                    <div style={{ color: T.muted, fontSize: 9, textTransform: "uppercase", letterSpacing: 1 }}>
+                      {timerMode === "focus" ? "focus" : "break"}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => setTimerRunning(r => !r)} style={{
+                    padding: "8px 18px", borderRadius: 20, border: "none",
+                    background: timerRunning ? T.surface : T.accent,
+                    color: timerRunning ? T.subtext : "#13111C",
+                    fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                    border: `1px solid ${timerRunning ? T.cardBorder : "transparent"}`,
+                  }}>{timerRunning ? "⏸ Pause" : "▶ Start"}</button>
+                  <button onClick={() => {
+                    setTimerRunning(false);
+                    setTimerSecs(timerMode === "focus" ? 25 * 60 : 5 * 60);
+                  }} style={{
+                    padding: "8px 12px", borderRadius: 20, border: `1px solid ${T.cardBorder}`,
+                    background: "transparent", color: T.muted, fontSize: 12,
+                    cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                  }}>↺</button>
+                </div>
+
+                {/* Mode switch */}
+                <div style={{ display: "flex", gap: 6, width: "100%" }}>
+                  {["focus", "break"].map(m => (
+                    <button key={m} onClick={() => {
+                      setTimerMode(m);
+                      setTimerRunning(false);
+                      setTimerSecs(m === "focus" ? 25 * 60 : 5 * 60);
+                    }} style={{
+                      flex: 1, padding: "6px", borderRadius: 10, cursor: "pointer",
+                      border: `1px solid ${timerMode === m ? (m === "focus" ? T.accent : T.teal) : T.cardBorder}`,
+                      background: timerMode === m ? (m === "focus" ? T.accentDim : T.tealDim) : "transparent",
+                      color: timerMode === m ? (m === "focus" ? T.accentText : T.teal) : T.muted,
+                      fontSize: 11, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", textTransform: "capitalize",
+                    }}>{m === "focus" ? "25m Focus" : "5m Break"}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Checklist */}
+            <div style={{ flex: 1, padding: "20px", overflowY: "auto" }}>
+              <div style={{ color: T.subtext, fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", marginBottom: 14 }}>
+                ✅ Session Goals
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {checklist.map(item => (
+                  <button key={item.id} onClick={() => setChecklist(c => c.map(i => i.id === item.id ? { ...i, done: !i.done } : i))} style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                    borderRadius: 10, cursor: "pointer", textAlign: "left", width: "100%",
+                    border: `1px solid ${item.done ? T.teal + "44" : T.cardBorder}`,
+                    background: item.done ? T.tealDim : T.surface,
+                    transition: "all 0.2s",
+                  }}>
+                    <div style={{
+                      width: 18, height: 18, borderRadius: 6, flexShrink: 0,
+                      border: `1.5px solid ${item.done ? T.teal : T.muted}`,
+                      background: item.done ? T.teal : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {item.done && <span style={{ color: "#13111C", fontSize: 10, fontWeight: 800 }}>✓</span>}
+                    </div>
+                    <span style={{
+                      color: item.done ? T.teal : T.subtext, fontSize: 13,
+                      textDecoration: item.done ? "line-through" : "none",
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}>{item.text}</span>
+                  </button>
+                ))}
+              </div>
+              <div style={{ marginTop: 16, color: T.muted, fontSize: 12, textAlign: "center" }}>
+                {checklist.filter(i => i.done).length}/{checklist.length} completed
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Onboarding ─────────────────────────────────────────────────────────────────
 function Onboarding({ onDone }) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState({ name: "", university: "", major: "", courses: "", style: "", level: "" });
-
-  const T = DARK; // onboarding always dark — clean and immersive
+  const T = DARK;
 
   const styleOptions = ["Practice Problems", "Discussion-based", "Visual / diagrams", "Flashcards + quizzing"];
   const levelOptions = ["Just getting started", "Struggling a bit", "Pretty comfortable", "Want to teach others"];
@@ -73,17 +375,16 @@ function Onboarding({ onDone }) {
 
   const inputStyle = {
     width: "100%", padding: "15px 18px", borderRadius: 14,
-    border: `1.5px solid ${T.cardBorder}`,
-    background: T.surface, color: T.text, fontSize: 15, outline: "none",
-    boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif",
-    transition: "border-color 0.2s",
+    border: `1.5px solid ${T.cardBorder}`, background: T.surface,
+    color: T.text, fontSize: 15, outline: "none", boxSizing: "border-box",
+    fontFamily: "'DM Sans', sans-serif",
   };
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, display: "flex", fontFamily: "'DM Sans', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
 
-      {/* Left branding panel */}
+      {/* Left panel */}
       <div style={{
         width: "42%", padding: "64px 56px",
         background: `linear-gradient(160deg, ${T.surface} 0%, ${T.bg} 100%)`,
@@ -96,21 +397,20 @@ function Onboarding({ onDone }) {
           </div>
           <div style={{ color: T.muted, fontSize: 15 }}>find your perfect study match</div>
         </div>
-
         <div style={{ color: T.text, fontSize: 26, fontFamily: "'Syne', sans-serif", fontWeight: 700, lineHeight: 1.4, marginBottom: 16 }}>
           Study smarter,<br />together.
         </div>
         <div style={{ color: T.subtext, fontSize: 14, lineHeight: 1.8, marginBottom: 40 }}>
-          Match with students in your classes based on study style, comfort level, and availability. No more studying alone.
+          Match with students in your exact courses, join a session room, and stay focused with a shared Pomodoro timer.
         </div>
-
         {[
-          { icon: "🎯", text: "Smart compatibility matching" },
-          { icon: "📍", text: "Sessions happening on campus now" },
-          { icon: "⚡", text: "Join or post in seconds" },
+          { icon: "🎯", text: "Matched to your exact courses" },
+          { icon: "💬", text: "Live session chat & coordination" },
+          { icon: "⏱", text: "Shared Pomodoro focus timer" },
+          { icon: "✅", text: "Shared session goal checklist" },
         ].map(item => (
-          <div key={item.text} style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 12, background: T.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>
+          <div key={item.text} style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 11, background: T.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
               {item.icon}
             </div>
             <span style={{ color: T.subtext, fontSize: 14 }}>{item.text}</span>
@@ -118,11 +418,9 @@ function Onboarding({ onDone }) {
         ))}
       </div>
 
-      {/* Right form panel */}
+      {/* Right panel */}
       <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 48 }}>
         <div style={{ width: "100%", maxWidth: 460 }}>
-
-          {/* Progress */}
           <div style={{ display: "flex", gap: 5, marginBottom: 40 }}>
             {[0,1,2,3,4,5].map(i => (
               <div key={i} style={{
@@ -134,46 +432,32 @@ function Onboarding({ onDone }) {
           </div>
 
           <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 24, padding: 40 }}>
+            <div style={{ color: T.muted, fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Step {step + 1} of 6</div>
 
             {step === 0 && <>
-              <Label T={T}>Step 1 of 6</Label>
-              <Question T={T}>What's your name?</Question>
-              <input autoFocus value={data.name}
-                onChange={e => setData({ ...data, name: e.target.value })}
-                onKeyDown={e => e.key === "Enter" && canNext && next()}
-                placeholder="e.g. Jordan" style={inputStyle} />
+              <div style={{ color: T.text, fontSize: 24, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 24 }}>What's your name?</div>
+              <input autoFocus value={data.name} onChange={e => setData({ ...data, name: e.target.value })} onKeyDown={e => e.key === "Enter" && canNext && next()} placeholder="e.g. Jordan" style={inputStyle} />
             </>}
 
             {step === 1 && <>
-              <Label T={T}>Step 2 of 6</Label>
-              <Question T={T}>Your university?</Question>
-              <input autoFocus value={data.university}
-                onChange={e => setData({ ...data, university: e.target.value })}
-                onKeyDown={e => e.key === "Enter" && canNext && next()}
-                placeholder="e.g. University of Nebraska-Lincoln" style={inputStyle} />
+              <div style={{ color: T.text, fontSize: 24, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 24 }}>Your university?</div>
+              <input autoFocus value={data.university} onChange={e => setData({ ...data, university: e.target.value })} onKeyDown={e => e.key === "Enter" && canNext && next()} placeholder="e.g. University of Nebraska-Lincoln" style={inputStyle} />
             </>}
 
             {step === 2 && <>
-              <Label T={T}>Step 3 of 6</Label>
-              <Question T={T}>Your major?</Question>
-              <input autoFocus value={data.major}
-                onChange={e => setData({ ...data, major: e.target.value })}
-                onKeyDown={e => e.key === "Enter" && canNext && next()}
-                placeholder="e.g. Computer Science" style={inputStyle} />
+              <div style={{ color: T.text, fontSize: 24, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 24 }}>Your major?</div>
+              <input autoFocus value={data.major} onChange={e => setData({ ...data, major: e.target.value })} onKeyDown={e => e.key === "Enter" && canNext && next()} placeholder="e.g. Computer Science" style={inputStyle} />
             </>}
 
             {step === 3 && <>
-              <Label T={T}>Step 4 of 6</Label>
-              <Question T={T}>Courses this semester?</Question>
-              <input autoFocus value={data.courses}
-                onChange={e => setData({ ...data, courses: e.target.value })}
-                onKeyDown={e => e.key === "Enter" && canNext && next()}
-                placeholder="e.g. MATH 221, CS 310, ECON 212" style={inputStyle} />
+              <div style={{ color: T.text, fontSize: 24, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 8 }}>Courses this semester?</div>
+              <div style={{ color: T.muted, fontSize: 13, marginBottom: 20 }}>We'll match you with sessions in your exact courses first 🎯</div>
+              <input autoFocus value={data.courses} onChange={e => setData({ ...data, courses: e.target.value })} onKeyDown={e => e.key === "Enter" && canNext && next()} placeholder="e.g. MATH 221, CS 310, ECON 212" style={inputStyle} />
+              <div style={{ marginTop: 10, color: T.muted, fontSize: 12 }}>Separate with commas</div>
             </>}
 
             {step === 4 && <>
-              <Label T={T}>Step 5 of 6</Label>
-              <Question T={T}>How do you study best?</Question>
+              <div style={{ color: T.text, fontSize: 24, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 24 }}>How do you study best?</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {styleOptions.map(opt => (
                   <button key={opt} onClick={() => setData({ ...data, style: opt })} style={{
@@ -184,28 +468,24 @@ function Onboarding({ onDone }) {
                     color: data.style === opt ? T.accentText : T.subtext,
                     transition: "all 0.15s",
                   }}>
-                    <div style={{ fontSize: 20, marginBottom: 6 }}>{STYLE_EMOJI[opt]}</div>
-                    {opt}
+                    <div style={{ fontSize: 20, marginBottom: 6 }}>{STYLE_EMOJI[opt]}</div>{opt}
                   </button>
                 ))}
               </div>
             </>}
 
             {step === 5 && <>
-              <Label T={T}>Step 6 of 6</Label>
-              <Question T={T}>Where are you at?</Question>
+              <div style={{ color: T.text, fontSize: 24, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 24 }}>Where are you at?</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {levelOptions.map(opt => (
                   <button key={opt} onClick={() => setData({ ...data, level: opt })} style={{
                     padding: "14px 18px", borderRadius: 14, cursor: "pointer", textAlign: "left",
                     fontSize: 14, fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
                     border: `1.5px solid ${data.level === opt ? T.teal : T.cardBorder}`,
-                    background: data.level === opt ? "#0D3330" : T.surface,
+                    background: data.level === opt ? T.tealDim : T.surface,
                     color: data.level === opt ? T.teal : T.subtext,
                     transition: "all 0.15s",
-                  }}>
-                    {opt}
-                  </button>
+                  }}>{opt}</button>
                 ))}
               </div>
             </>}
@@ -226,31 +506,38 @@ function Onboarding({ onDone }) {
   );
 }
 
-// Small reusable label/question helpers
-function Label({ T, children }) {
-  return <div style={{ color: T.muted, fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>{children}</div>;
-}
-function Question({ T, children }) {
-  return <div style={{ color: T.text, fontSize: 24, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 24 }}>{children}</div>;
-}
-
 // ── Session Card ───────────────────────────────────────────────────────────────
-function SessionCard({ session, onJoin, T }) {
+function SessionCard({ session, onJoin, onOpenRoom, userCourses, T }) {
   const [joined, setJoined] = useState(false);
   const [passed, setPassed] = useState(false);
+
+  const userCourseList = userCourses.split(",").map(c => c.trim().toUpperCase()).filter(Boolean);
+  const isMyCourse = userCourseList.includes(session.course.toUpperCase());
+
   if (passed) return null;
 
   return (
     <div style={{
-      background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 20, padding: 24, position: "relative",
+      background: T.card, borderRadius: 20, padding: 24, position: "relative",
+      border: `1px solid ${isMyCourse ? T.accent + "55" : T.cardBorder}`,
       transition: "transform 0.2s, box-shadow 0.2s",
     }}
-      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 12px 40px ${T.accent}18`; }}
+      onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = `0 12px 40px ${T.accent}15`; }}
       onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
     >
-      {/* Match badge */}
+      {/* Course match badge */}
+      {isMyCourse && (
+        <div style={{
+          position: "absolute", top: -10, left: 20,
+          background: T.accentDim, border: `1px solid ${T.accent}66`,
+          borderRadius: 20, padding: "3px 10px",
+          color: T.accentText, fontSize: 10, fontWeight: 700, letterSpacing: 1,
+        }}>⭐ YOUR COURSE</div>
+      )}
+
+      {/* Compatibility badge */}
       <div style={{
-        position: "absolute", top: 20, right: 20,
+        position: "absolute", top: 18, right: 18,
         background: session.compatibility >= 90 ? T.accentDim : T.surface,
         border: `1px solid ${session.compatibility >= 90 ? T.accent + "66" : T.cardBorder}`,
         borderRadius: 20, padding: "4px 10px", display: "flex", alignItems: "center", gap: 5,
@@ -261,12 +548,12 @@ function SessionCard({ session, onJoin, T }) {
         </span>
       </div>
 
-      {/* Avatar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, marginTop: isMyCourse ? 6 : 0 }}>
         <div style={{
           width: 44, height: 44, borderRadius: 13, background: session.color + "22",
-          border: `1.5px solid ${session.color}66`, display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 14, fontWeight: 700, color: session.color, fontFamily: "'Syne', sans-serif", flexShrink: 0,
+          border: `1.5px solid ${session.color}66`, display: "flex", alignItems: "center",
+          justifyContent: "center", fontSize: 14, fontWeight: 700, color: session.color,
+          fontFamily: "'Syne', sans-serif", flexShrink: 0,
         }}>{session.initials}</div>
         <div>
           <div style={{ color: T.text, fontWeight: 600, fontSize: 14 }}>{session.name}</div>
@@ -274,13 +561,11 @@ function SessionCard({ session, onJoin, T }) {
         </div>
       </div>
 
-      {/* Course pill */}
       <div style={{ background: T.surface, borderRadius: 10, padding: "10px 14px", marginBottom: 12 }}>
         <div style={{ color: T.accentText, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 3 }}>{session.course}</div>
         <div style={{ color: T.text, fontSize: 14, fontWeight: 600 }}>{session.topic}</div>
       </div>
 
-      {/* Details */}
       <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 14 }}>
         {[["📍", session.location], ["⏰", session.time], [STYLE_EMOJI[session.style], session.style]].map(([icon, val]) => (
           <div key={val} style={{ display: "flex", gap: 8, alignItems: "center", color: T.subtext, fontSize: 12 }}>
@@ -289,7 +574,6 @@ function SessionCard({ session, onJoin, T }) {
         ))}
       </div>
 
-      {/* Tags */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         {session.tags.map(tag => (
           <span key={tag} style={{
@@ -300,12 +584,12 @@ function SessionCard({ session, onJoin, T }) {
         ))}
       </div>
 
-      {/* Actions */}
       {joined ? (
-        <div style={{
-          background: T.accentDim, border: `1px solid ${T.accent}55`,
-          borderRadius: 10, padding: "12px", textAlign: "center", color: T.accentText, fontWeight: 600, fontSize: 13,
-        }}>✓ You're in! {session.name} has been notified.</div>
+        <button onClick={() => onOpenRoom(session)} style={{
+          width: "100%", padding: "12px", borderRadius: 10, border: `1px solid ${T.teal}55`,
+          background: T.tealDim, color: T.teal, cursor: "pointer", fontSize: 13, fontWeight: 700,
+          fontFamily: "'DM Sans', sans-serif",
+        }}>💬 Open Session Room →</button>
       ) : (
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => setPassed(true)} style={{
@@ -394,16 +678,23 @@ function MainApp({ user }) {
   const [tab, setTab] = useState("discover");
   const [showPost, setShowPost] = useState(false);
   const [joined, setJoined] = useState([]);
+  const [activeRoom, setActiveRoom] = useState(null);
   const [filter, setFilter] = useState("");
 
-  const filtered = SAMPLE_SESSIONS.filter(s =>
+  const matched = getMatchedSessions(SAMPLE_SESSIONS, user.courses || "");
+  const filtered = matched.filter(s =>
     !filter || s.course.toLowerCase().includes(filter.toLowerCase()) || s.topic.toLowerCase().includes(filter.toLowerCase())
   );
 
+  const userCourseList = (user.courses || "").split(",").map(c => c.trim().toUpperCase()).filter(Boolean);
+  const myCourseSessions = filtered.filter(s => userCourseList.includes(s.course.toUpperCase()));
+  const otherSessions = filtered.filter(s => !userCourseList.includes(s.course.toUpperCase()));
+
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'DM Sans', sans-serif", transition: "background 0.3s, color 0.3s" }}>
+    <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'DM Sans', sans-serif", transition: "background 0.3s" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
       {showPost && <PostModal onClose={() => setShowPost(false)} T={T} />}
+      {activeRoom && <SessionRoom session={activeRoom} user={user} onClose={() => setActiveRoom(null)} T={T} />}
 
       {/* Navbar */}
       <div style={{
@@ -412,7 +703,6 @@ function MainApp({ user }) {
         background: T.card, borderBottom: `1px solid ${T.cardBorder}`,
         position: "sticky", top: 0, zIndex: 50,
       }}>
-        {/* Logo — always fixed colors */}
         <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 21, fontWeight: 800, letterSpacing: -0.5 }}>
           <span style={{ color: "#A78BFA" }}>study</span><span style={{ color: "#5EEAD4" }}>sync</span>
         </span>
@@ -430,16 +720,11 @@ function MainApp({ user }) {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {/* Mode toggle */}
           <button onClick={() => setMode(m => m === "dark" ? "light" : "dark")} style={{
-            padding: "7px 14px", borderRadius: 20,
-            border: `1px solid ${T.cardBorder}`,
-            background: T.surface, color: T.subtext,
-            fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-            display: "flex", alignItems: "center", gap: 5, fontWeight: 500,
-          }}>
-            {mode === "dark" ? "☀️ Light" : "🌙 Dark"}
-          </button>
+            padding: "7px 14px", borderRadius: 20, border: `1px solid ${T.cardBorder}`,
+            background: T.surface, color: T.subtext, fontSize: 13, cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 5, fontWeight: 500,
+          }}>{mode === "dark" ? "☀️ Light" : "🌙 Dark"}</button>
           <button onClick={() => setShowPost(true)} style={{
             padding: "8px 18px", borderRadius: 20, border: "none",
             background: T.accent, color: "#13111C", fontSize: 13, fontWeight: 700,
@@ -454,7 +739,7 @@ function MainApp({ user }) {
         </div>
       </div>
 
-      {/* Discover tab */}
+      {/* Discover */}
       {tab === "discover" && (
         <div style={{ padding: "32px 40px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
@@ -462,15 +747,16 @@ function MainApp({ user }) {
               <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 700, color: T.text, marginBottom: 4 }}>
                 Hey {user.name} 👋
               </div>
-              <div style={{ color: T.subtext, fontSize: 14 }}>Study sessions happening on campus right now.</div>
+              <div style={{ color: T.subtext, fontSize: 14 }}>
+                {myCourseSessions.length > 0
+                  ? `${myCourseSessions.length} session${myCourseSessions.length > 1 ? "s" : ""} in your courses right now`
+                  : "Study sessions happening on campus right now."}
+              </div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <div style={{ background: T.surface, border: `1px solid ${T.cardBorder}`, borderRadius: 10, padding: "7px 14px", display: "flex", gap: 5, alignItems: "center" }}>
                 <div style={{ width: 5, height: 5, borderRadius: "50%", background: T.teal }} />
                 <span style={{ color: T.subtext, fontSize: 12, fontWeight: 500 }}>{filtered.length} live sessions</span>
-              </div>
-              <div style={{ background: T.surface, border: `1px solid ${T.cardBorder}`, borderRadius: 10, padding: "7px 14px" }}>
-                <span style={{ color: T.subtext, fontSize: 12, fontWeight: 500 }}>📍 On campus</span>
               </div>
             </div>
           </div>
@@ -480,20 +766,43 @@ function MainApp({ user }) {
             style={{
               width: "100%", padding: "13px 18px", borderRadius: 12, border: `1px solid ${T.cardBorder}`,
               background: T.surface, color: T.text, fontSize: 14, outline: "none",
-              boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif", marginBottom: 24,
+              boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif", marginBottom: 28,
             }}
           />
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18 }}>
-            {filtered.length === 0
-              ? <div style={{ color: T.muted, fontSize: 14, padding: 48 }}>No sessions match your filter.</div>
-              : filtered.map(s => <SessionCard key={s.id} session={s} onJoin={s => setJoined(j => [...j, s])} T={T} />)
-            }
-          </div>
+          {/* Your courses section */}
+          {myCourseSessions.length > 0 && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <span style={{ color: T.accentText, fontSize: 12, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>⭐ Your Courses</span>
+                <div style={{ flex: 1, height: 1, background: T.cardBorder }} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18, marginBottom: 36 }}>
+                {myCourseSessions.map(s => (
+                  <SessionCard key={s.id} session={s} onJoin={s => setJoined(j => [...j, s])} onOpenRoom={setActiveRoom} userCourses={user.courses || ""} T={T} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Other sessions */}
+          {otherSessions.length > 0 && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <span style={{ color: T.subtext, fontSize: 12, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase" }}>Other Sessions</span>
+                <div style={{ flex: 1, height: 1, background: T.cardBorder }} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18 }}>
+                {otherSessions.map(s => (
+                  <SessionCard key={s.id} session={s} onJoin={s => setJoined(j => [...j, s])} onOpenRoom={setActiveRoom} userCourses={user.courses || ""} T={T} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
-      {/* My Sessions tab */}
+      {/* My Sessions */}
       {tab === "my sessions" && (
         <div style={{ padding: "32px 40px" }}>
           <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 700, color: T.text, marginBottom: 24 }}>My Sessions</div>
@@ -512,7 +821,7 @@ function MainApp({ user }) {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 16 }}>
               {joined.map(s => (
                 <div key={s.id} style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 16, padding: 22 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
                     <div>
                       <div style={{ color: T.accentText, fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>{s.course}</div>
                       <div style={{ color: T.text, fontWeight: 600, fontSize: 15, marginBottom: 5 }}>{s.topic}</div>
@@ -522,6 +831,11 @@ function MainApp({ user }) {
                       <span style={{ color: T.accentText, fontSize: 10, fontWeight: 700 }}>JOINED</span>
                     </div>
                   </div>
+                  <button onClick={() => setActiveRoom(s)} style={{
+                    width: "100%", padding: "10px", borderRadius: 10, border: `1px solid ${T.teal}55`,
+                    background: T.tealDim, color: T.teal, cursor: "pointer", fontSize: 13, fontWeight: 700,
+                    fontFamily: "'DM Sans', sans-serif",
+                  }}>💬 Open Session Room →</button>
                 </div>
               ))}
             </div>
@@ -532,7 +846,6 @@ function MainApp({ user }) {
   );
 }
 
-// ── Root ───────────────────────────────────────────────────────────────────────
 export default function App() {
   const [user, setUser] = useState(null);
   if (!user) return <Onboarding onDone={setUser} />;
