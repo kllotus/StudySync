@@ -690,15 +690,128 @@ function PostModal({ onClose, T }) {
   );
 }
 
+// ── Profile Modal ─────────────────────────────────────────────────────────────
+function ProfileModal({ user, onSave, onClose, T }) {
+  const [form, setForm] = useState({ ...user });
+  const styleOptions = ["Practice Problems", "Discussion-based", "Visual / diagrams", "Flashcards + quizzing"];
+  const levelOptions = ["Just getting started", "Struggling a bit", "Pretty comfortable", "Want to teach others"];
+
+  const inputStyle = {
+    width: "100%", padding: "11px 14px", borderRadius: 10,
+    border: `1px solid ${T.cardBorder}`, background: T.surface,
+    color: T.text, fontSize: 14, outline: "none",
+    boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif",
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 24, padding: 36, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}>
+
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
+          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: T.text }}>Edit Profile</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 18 }}>✕</button>
+        </div>
+
+        {/* Avatar */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 28, padding: "16px 20px", background: T.surface, borderRadius: 16, border: `1px solid ${T.cardBorder}` }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 16, background: T.accentDim,
+            border: `2px solid ${T.accent}55`, display: "flex", alignItems: "center",
+            justifyContent: "center", fontSize: 22, fontWeight: 700, color: T.accentText,
+            fontFamily: "'Syne', sans-serif", flexShrink: 0,
+          }}>{form.name ? form.name[0].toUpperCase() : "?"}</div>
+          <div>
+            <div style={{ color: T.text, fontWeight: 600, fontSize: 16 }}>{form.name || "Your Name"}</div>
+            <div style={{ color: T.subtext, fontSize: 13 }}>{form.university || "Your University"}</div>
+            <div style={{ color: T.muted, fontSize: 12, marginTop: 2 }}>{form.major || "Your Major"}</div>
+          </div>
+        </div>
+
+        {/* Fields */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+
+          {[
+            { label: "Name", key: "name", placeholder: "e.g. Jordan" },
+            { label: "University", key: "university", placeholder: "e.g. University of Nebraska-Lincoln" },
+            { label: "Major", key: "major", placeholder: "e.g. Computer Science" },
+            { label: "Courses this semester", key: "courses", placeholder: "e.g. MATH 221, CS 310, ECON 212" },
+          ].map(f => (
+            <div key={f.key}>
+              <div style={{ color: T.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>{f.label}</div>
+              <input value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })} placeholder={f.placeholder} style={inputStyle} />
+            </div>
+          ))}
+
+          {/* Study Style multi-select */}
+          <div>
+            <div style={{ color: T.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10 }}>Study Style</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {styleOptions.map(opt => {
+                const selected = form.style ? form.style.split(",").map(s => s.trim()).includes(opt) : false;
+                const toggle = () => {
+                  const current = form.style ? form.style.split(",").map(s => s.trim()).filter(Boolean) : [];
+                  const updated = selected ? current.filter(s => s !== opt) : [...current, opt];
+                  setForm({ ...form, style: updated.join(", ") });
+                };
+                return (
+                  <button key={opt} onClick={toggle} style={{
+                    padding: "12px", borderRadius: 12, cursor: "pointer", textAlign: "left",
+                    fontSize: 12, fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+                    border: `1px solid ${selected ? T.accent : T.cardBorder}`,
+                    background: selected ? T.accentDim : T.surface,
+                    color: selected ? T.accentText : T.subtext,
+                    display: "flex", alignItems: "center", gap: 8, transition: "all 0.15s",
+                  }}>
+                    <span style={{ fontSize: 16 }}>{STYLE_EMOJI[opt]}</span>
+                    <span>{opt}</span>
+                    {selected && <span style={{ marginLeft: "auto", color: T.accent, fontWeight: 800, fontSize: 12 }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Comfort Level */}
+          <div>
+            <div style={{ color: T.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10 }}>Comfort Level</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {levelOptions.map(opt => (
+                <button key={opt} onClick={() => setForm({ ...form, level: opt })} style={{
+                  padding: "11px 14px", borderRadius: 12, cursor: "pointer", textAlign: "left",
+                  fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
+                  border: `1px solid ${form.level === opt ? T.teal : T.cardBorder}`,
+                  background: form.level === opt ? T.tealDim : T.surface,
+                  color: form.level === opt ? T.teal : T.subtext,
+                  transition: "all 0.15s",
+                }}>{opt}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Save */}
+        <button onClick={() => onSave(form)} style={{
+          marginTop: 28, width: "100%", padding: "14px", borderRadius: 14, border: "none",
+          background: T.accent, color: "#13111C", fontSize: 15, fontWeight: 700,
+          cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+        }}>Save Changes</button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main App ───────────────────────────────────────────────────────────────────
-function MainApp({ user }) {
+function MainApp({ user: initialUser }) {
   const [mode, setMode] = useState("dark");
   const T = mode === "dark" ? DARK : LIGHT;
   const [tab, setTab] = useState("discover");
   const [showPost, setShowPost] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [joined, setJoined] = useState([]);
   const [activeRoom, setActiveRoom] = useState(null);
   const [filter, setFilter] = useState("");
+  const [user, setUser] = useState(initialUser);
 
   const matched = getMatchedSessions(SAMPLE_SESSIONS, user.courses || "");
   const filtered = matched.filter(s =>
@@ -714,6 +827,7 @@ function MainApp({ user }) {
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
       {showPost && <PostModal onClose={() => setShowPost(false)} T={T} />}
       {activeRoom && <SessionRoom session={activeRoom} user={user} onClose={() => setActiveRoom(null)} T={T} />}
+      {showProfile && <ProfileModal user={user} onSave={(updated) => { setUser(updated); setShowProfile(false); }} onClose={() => setShowProfile(false)} T={T} />}
 
       {/* Navbar */}
       <div style={{
@@ -749,12 +863,12 @@ function MainApp({ user }) {
             background: T.accent, color: "#13111C", fontSize: 13, fontWeight: 700,
             cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
           }}>+ Post Session</button>
-          <div style={{
+          <button onClick={() => setShowProfile(true)} style={{
             width: 34, height: 34, borderRadius: 10, background: T.accentDim,
             border: `1px solid ${T.accent}55`, display: "flex", alignItems: "center",
             justifyContent: "center", fontSize: 13, fontWeight: 700, color: T.accentText,
-            fontFamily: "'Syne', sans-serif",
-          }}>{user.name[0].toUpperCase()}</div>
+            fontFamily: "'Syne', sans-serif", cursor: "pointer",
+          }}>{user.name[0].toUpperCase()}</button>
         </div>
       </div>
 
