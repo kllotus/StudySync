@@ -1,92 +1,146 @@
-# [🎓 StudySync](#🎓-studysync)
-**Real-time collaborative study matches with dynamic institutional branding.**
+# 📚 StudySync
 
-StudySync is a [React Native](https://reactnative.dev/) application that connects students based on their exact course codes. It features a **smart branding engine** that automatically skins the UI to match your university's colors based on your `.edu` email address.
+> **Campus study partner matching — built at Raikes Hacks 2026**
 
----
-
-## [📖 Description](#📖-description)
-In high-pressure academic environments, finding a study partner for a niche course is often left to chance. StudySync provides a dedicated space for students to:
-
-- Find peers enrolled in the same courses  
-- Join virtual rooms with synchronized Pomodoro timers  
-- Coordinate via university-specific chats  
-
-It acts as a **central hub for academic accountability**, ensuring students never have to study alone.
+StudySync connects college students with the right study partner, for their exact courses, at the right moment. It's not just a matching app — it's the full study experience from first match to final problem solved.
 
 ---
 
-## [📑 Table of Contents](#📑-table-of-contents)
-- [🏗️ Project Documentation](#🏗️-project-documentation)  
-- [🚀 Usage](#🚀-usage)  
-- [✨ Features](#✨-features)  
-- [🛠️ Technologies Used](#🛠️-technologies-used)  
-- [💻 Installation](#💻-installation)  
+## ✨ Features
+
+**Smart Course Matching**
+Sessions in your enrolled courses surface first, ranked by compatibility score based on your study style, comfort level, and courses.
+
+**Live Session Room**
+Join a session and get a shared chat, a Pomodoro focus timer with 25-min/5-min modes, and a goal checklist — all in one room.
+
+**Availability Calendar**
+Mark your free hours on a weekly grid. StudySync detects overlaps with your matched students and lets you schedule a session in two taps.
+
+**Post-Session Rating**
+After every session, leave a quick thumbs up/down with tags like "Explained well" or "Stayed focused" to build trust scores over time.
+
+**Availability Status**
+Toggle yourself Available or Busy — matched students see a live indicator on your card so they know when you're ready to study right now.
+
+**Editable Profile**
+Update your name, university, email, courses, study style, and comfort level anytime. Changes instantly re-sort your matched sessions.
 
 ---
 
-## [🏗️ Project Documentation](#🏗️-project-documentation)
-Technical backend requirements and database structures are detailed in:
+## 🛠 Tech Stack
 
-- [Backend & Database Setup](./docs/BACKEND.md) – Includes SQL scripts and Supabase RLS policies.
+| Layer | Technology |
+|-------|------------|
+| Framework | React 18 + Vite |
+| Styling | Inline styles with dynamic theming |
+| Fonts | Google Fonts — Syne, DM Sans |
+| State | React useState / useEffect |
+| Backend | Supabase (school theme lookup) |
+| Language | JavaScript (JSX) |
 
 ---
 
-## [🚀 Usage](#🚀-usage)
-Start the app with Expo:
+## 🚀 Running Locally
+
+### Prerequisites
+
+- Node.js v18 or higher
+- npm v9 or higher
+
+### Steps
+
 ```bash
-npx expo start
+# 1. Clone the repo
+git clone https://github.com/kllotus/StudySync.git
+cd StudySync/studysync
 
-Open the Expo Go
- app on your iOS or Android device.
-
-Scan the QR code displayed in your terminal to launch the app.
-
-Sign up with a .edu email to enable institutional branding and join study rooms.
-
-✨ Features
-
-Institutional Auto-Theme: Automatically skins the app for supported universities (e.g., UNL, UMich, UCLA) based on your email domain.
-
-8-Step Onboarding: Seamless registration capturing your major, courses, and study preferences.
-
-Integrated Study Calendar: Track upcoming sessions and deadlines directly in-app.
-
-Live Pomodoro Timer: Shared 25/5 minute focus timer to sync study intervals with your partner.
-
-Persistent Auth: Session automatically restores using AsyncStorage, so you don’t have to log in every time.
-
-🛠️ Technologies Used
-
-Frontend: React Native
- (Expo)
-
-Backend: Supabase
- (Auth & PostgreSQL)
-
-Storage: @react-native-async-storage
-
-State Management: React Hooks (useState, useEffect, useRef)
-
-💻 Installation
-
-Follow these steps to set up the project locally:
-
-Clone the repository
-
-git clone https://github.com/username/project-name.git
-cd project-name
-
-Install core dependencies
-
+# 2. Install dependencies
 npm install
 
-Install mobile-specific modules
+# 3. Start the dev server
+npm run dev
+```
 
-npx expo install @supabase/supabase-js @react-native-async-storage/async-storage
+Then open [http://localhost:5173](http://localhost:5173) in your browser.
 
-Configure environment variables
-Create a .env file in the root directory:
+> No environment variables or API keys required to run the app locally. The app works fully out of the box.
 
-EXPO_PUBLIC_SUPABASE_URL=your_supabase_url_here
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+---
+
+## 📁 Project Structure
+
+```
+StudySync/
+└── studysync/
+    ├── src/
+    │   ├── App.jsx          # All components — Onboarding, SessionRoom,
+    │   │                    # ProfileModal, CalendarTab, RatingModal, MainApp
+    │   ├── main.jsx         # React entry point
+    │   └── index.css        # Base styles
+    ├── public/              # Static assets
+    ├── index.html
+    ├── vite.config.js
+    └── package.json
+```
+
+---
+
+## 🧭 Walkthrough for Judges
+
+Follow these steps to evaluate the full feature set:
+
+**1. Onboarding**
+- Fields are pre-filled for demo speed — just click through
+- Step 4: select one or more study styles
+- Step 5: pick a comfort level
+- Click "Find My Study Matches →"
+
+**2. Discover Tab**
+- Your enrolled courses (MATH 221, CS 310, ECON 212) surface at the top under ⭐ Your Courses
+- Cards show compatibility %, availability status, study style, and location
+- Use the filter bar to search by course or topic
+
+**3. Join a Session**
+- Click "Join Session →" on any card
+- Click "Open Session Room →" to enter the live room
+
+**4. Session Room**
+- Send a chat message (press Enter or click →)
+- Start the Pomodoro timer
+- Check off goals in the checklist
+- Click ✕ to close — the rating modal appears automatically
+
+**5. Rate the Session**
+- Pick 👍 or 👎
+- Select tags
+- Submit — the card now shows a "Rated" badge
+
+**6. Calendar Tab**
+- Click cells to mark your free hours
+- Teal cells = overlap with a matched student
+- Click a teal cell → pick a student → Schedule →
+
+**7. Profile**
+- Click your avatar (top right)
+- Edit any field and save — sessions re-sort instantly
+
+**8. Availability Toggle**
+- Click "Available" in the navbar to toggle Busy/Available
+- Cards on Discover reflect live availability status
+
+---
+
+## 👥 Team
+
+| Name | GitHub |
+|------|--------|
+| Kanwal Lotay | [@kllotus](https://github.com/kllotus) |
+| Bradley Chebefuh | [@bchebefuh2](https://github.com/bchebefuh2) |
+
+---
+
+## 🏆 Built At
+
+**Raikes Hacks 2026** — FindU Track  
+University of Nebraska-Lincoln
