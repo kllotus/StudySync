@@ -1,16 +1,26 @@
-# React + Vite
+# 🎓 StudySync
+**Real-time collaborative study matches with dynamic institutional branding.**
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+StudySync is a React Native application that connects students based on their exact course codes. It features a smart branding engine that automatically skins the UI to match your university's colors based on your `.edu` email address.
 
-Currently, two official plugins are available:
+## Description
+In high-pressure academic environments, finding a study partner for a niche course is often left to chance. StudySync provides a dedicated space for students to find peers, join virtual rooms with synchronized Pomodoro timers, and coordinate via university-specific chats. It acts as a central hub for academic accountability, ensuring students never have to study alone.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Table of Contents
+- [Installation](#installation)
+- [Project Documentation](#project-documentation)
+- [Usage](#usage)
+- [Features](#features)
+- [Technologies Used](#technologies-used)
 
-## React Compiler
+## Project Documentation
+Technical backend requirements are detailed in the following sub-page:
+* [🏗️ Backend & Database Setup](./docs/BACKEND.md) – Detailed SQL scripts and Supabase RLS policies.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Installation
+Follow these steps to set up the project locally on your machine:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. **Clone the repository:**
+```bash
+git clone [https://github.com/username/project-name.git](https://github.com/username/project-name.git)
+cd project-name

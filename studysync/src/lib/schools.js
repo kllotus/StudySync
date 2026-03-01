@@ -23,7 +23,7 @@ export async function getSchoolTheme(email) {
     shortName: data.short_name,
     primary: data.primary_color,
     secondary: data.secondary_color,
-    logoUrL: data.logo_urL,
+    logoUrl: data.logo_urL,
     accentDim: hexToRgba(data.primary_color, 0.15),
     accentText: lightenHex(data.primary_color),
   }
