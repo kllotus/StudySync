@@ -323,7 +323,19 @@ function Onboarding({ onDone }) {
 
             {step === 1 && <>
               <div style={{ color: T.text, fontSize: 24, fontWeight: 700, fontFamily: "'Syne', sans-serif", marginBottom: 24 }}>Your university?</div>
-              <input autoFocus value={data.university} onChange={e => setData({ ...data, university: e.target.value })} onKeyDown={e => e.key === "Enter" && canNext && next()} placeholder="e.g. University of Nebraska-Lincoln" style={inputStyle} />
+              <input autoFocus value={data.university} onChange={e => setData({ ...data, university: e.target.value })} placeholder="e.g. University of Nebraska-Lincoln" style={{ ...inputStyle, marginBottom: 14 }} />
+              <div style={{ color: T.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>University Email</div>
+              <input
+                value={data.email || ""}
+                onChange={e => setData({ ...data, email: e.target.value })}
+                onKeyDown={e => e.key === "Enter" && canNext && next()}
+                placeholder="e.g. jsmith@huskers.unl.edu"
+                style={{ ...inputStyle, borderColor: data.email && !data.email.endsWith(".edu") ? "#F87171" : inputStyle.border }}
+              />
+              {data.email && !data.email.includes("@") === false && !data.email.endsWith(".edu") && (
+                <div style={{ color: "#F87171", fontSize: 12, marginTop: 8 }}>Please use your .edu email address</div>
+              )}
+              <div style={{ color: T.muted, fontSize: 12, marginTop: 8 }}>Optional — used for profile & verification</div>
             </>}
 
             {step === 2 && <>
@@ -381,6 +393,7 @@ function Onboarding({ onDone }) {
 // ── Profile Modal ──────────────────────────────────────────────────────────────
 function ProfileModal({ user, onSave, onClose, T }) {
   const [form, setForm] = useState({ ...user });
+  const [emailError, setEmailError] = useState("");
   const styleOptions = ["Practice Problems", "Discussion-based", "Visual / diagrams", "Flashcards + quizzing"];
   const levelOptions = ["Just getting started", "Struggling a bit", "Pretty comfortable", "Want to teach others"];
 
