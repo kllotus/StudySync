@@ -69,12 +69,12 @@ function buildTheme(schoolTheme, mode) {
 
 // ── Sample Data ────────────────────────────────────────────────────────────────
 const SAMPLE_SESSIONS = [
-  { id: 1, name: "Priya Sharma",  initials: "PS", color: "#A78BFA", course: "MATH 221", topic: "Integration by Parts",       location: "Love Library, 2nd Floor",     time: "Now → 3hrs",      style: "Practice Problems",    level: "Struggling a bit",      compatibility: 94, tags: ["quiet", "focused"] },
-  { id: 2, name: "Marcus Webb",   initials: "MW", color: "#5EEAD4", course: "CS 310",   topic: "Binary Trees & Recursion",    location: "Schorr Center, Room 114",     time: "In 30min → 2hrs", style: "Discussion-based",     level: "Pretty comfortable",    compatibility: 87, tags: ["collaborative", "whiteboard"] },
-  { id: 3, name: "Aiden Torres",  initials: "AT", color: "#FDBA74", course: "ECON 212", topic: "Game Theory midterm prep",    location: "Nebraska Union, Table 7",     time: "Now → 2hrs",      style: "Visual / diagrams",    level: "Want to teach others",  compatibility: 78, tags: ["social", "snacks ok"] },
-  { id: 4, name: "Lily Chen",     initials: "LC", color: "#86EFAC", course: "BIOS 101", topic: "Cell Division & Mitosis",     location: "Hamilton Hall, Study Room 3", time: "Tonight 7–9pm",   style: "Flashcards + quizzing", level: "Struggling a bit",      compatibility: 82, tags: ["quiet", "focused"] },
-  { id: 5, name: "Zara Ahmed",    initials: "ZA", color: "#F9A8D4", course: "PSYC 181", topic: "Memory & Cognition",          location: "Burnett Hall, Room 204",      time: "Now → 1.5hrs",    style: "Discussion-based",     level: "Pretty comfortable",    compatibility: 91, tags: ["collaborative", "social"] },
-  { id: 6, name: "Jake Morris",   initials: "JM", color: "#93C5FD", course: "PHYS 211", topic: "Kinematics & Newton's Laws",  location: "Jorgensen Hall, 3rd Floor",   time: "In 1hr → 2hrs",   style: "Practice Problems",    level: "Struggling a bit",      compatibility: 85, tags: ["quiet", "focused"] },
+  { id: 1, name: "Priya Sharma",  initials: "PS", color: "#A78BFA", available: true,  course: "MATH 221", topic: "Integration by Parts",       location: "Love Library, 2nd Floor",     time: "Now → 3hrs",      style: "Practice Problems",    level: "Struggling a bit",      compatibility: 94, tags: ["quiet", "focused"] },
+  { id: 2, name: "Marcus Webb",   initials: "MW", color: "#5EEAD4", available: true,  course: "CS 310",   topic: "Binary Trees & Recursion",    location: "Schorr Center, Room 114",     time: "In 30min → 2hrs", style: "Discussion-based",     level: "Pretty comfortable",    compatibility: 87, tags: ["collaborative", "whiteboard"] },
+  { id: 3, name: "Aiden Torres",  initials: "AT", color: "#FDBA74", available: false, course: "ECON 212", topic: "Game Theory midterm prep",    location: "Nebraska Union, Table 7",     time: "Now → 2hrs",      style: "Visual / diagrams",    level: "Want to teach others",  compatibility: 78, tags: ["social", "snacks ok"] },
+  { id: 4, name: "Lily Chen",     initials: "LC", color: "#86EFAC", available: true,  course: "BIOS 101", topic: "Cell Division & Mitosis",     location: "Hamilton Hall, Study Room 3", time: "Tonight 7–9pm",   style: "Flashcards + quizzing", level: "Struggling a bit",      compatibility: 82, tags: ["quiet", "focused"] },
+  { id: 5, name: "Zara Ahmed",    initials: "ZA", color: "#F9A8D4", available: true,  course: "PSYC 181", topic: "Memory & Cognition",          location: "Burnett Hall, Room 204",      time: "Now → 1.5hrs",    style: "Discussion-based",     level: "Pretty comfortable",    compatibility: 91, tags: ["collaborative", "social"] },
+  { id: 6, name: "Jake Morris",   initials: "JM", color: "#93C5FD", available: false, course: "PHYS 211", topic: "Kinematics & Newton's Laws",  location: "Jorgensen Hall, 3rd Floor",   time: "In 1hr → 2hrs",   style: "Practice Problems",    level: "Struggling a bit",      compatibility: 85, tags: ["quiet", "focused"] },
 ];
 
 const STYLE_EMOJI = {
@@ -495,7 +495,7 @@ function ProfileModal({ user, onSave, onClose, T }) {
 }
 
 // ── Session Card ───────────────────────────────────────────────────────────────
-function SessionCard({ session, onJoin, onOpenRoom, userCourses, T }) {
+function SessionCard({ session, onJoin, onOpenRoom, userCourses, rating, T }) {
   const [joined, setJoined] = useState(false);
   const [passed, setPassed] = useState(false);
   const isMyCourse = userCourses.split(",").map(c => c.trim().toUpperCase()).includes(session.course.toUpperCase());
@@ -507,11 +507,25 @@ function SessionCard({ session, onJoin, onOpenRoom, userCourses, T }) {
       onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
     >
       {isMyCourse && <div style={{ position: "absolute", top: -10, left: 20, background: T.accentDim, border: `1px solid ${T.accent}66`, borderRadius: 20, padding: "3px 10px", color: T.accentText, fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>⭐ YOUR COURSE</div>}
+      {/* Availability indicator */}
+      {session.available && (
+        <div style={{ position: "absolute", top: 18, left: isMyCourse ? 20 : 18, display: "flex", alignItems: "center", gap: 5, background: T.tealDim, border: `1px solid ${T.teal}55`, borderRadius: 20, padding: "3px 9px" }}>
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: T.teal }} />
+          <span style={{ fontSize: 10, fontWeight: 700, color: T.teal }}>AVAILABLE NOW</span>
+        </div>
+      )}
+      {/* Compatibility badge */}
       <div style={{ position: "absolute", top: 18, right: 18, background: session.compatibility >= 90 ? T.accentDim : T.surface, border: `1px solid ${session.compatibility >= 90 ? T.accent + "66" : T.cardBorder}`, borderRadius: 20, padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}>
         <div style={{ width: 5, height: 5, borderRadius: "50%", background: session.compatibility >= 90 ? T.accent : T.muted }} />
         <span style={{ fontSize: 11, fontWeight: 700, color: session.compatibility >= 90 ? T.accentText : T.muted }}>{session.compatibility}% match</span>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, marginTop: isMyCourse ? 6 : 0 }}>
+      {/* Past rating badge */}
+      {rating && (
+        <div style={{ position: "absolute", bottom: 18, right: 18, background: rating.thumbs === "up" ? T.tealDim : "#F8717115", border: `1px solid ${rating.thumbs === "up" ? T.teal + "55" : "#F8717155"}`, borderRadius: 20, padding: "3px 10px" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: rating.thumbs === "up" ? T.teal : "#F87171" }}>{rating.thumbs === "up" ? "👍 Rated" : "👎 Rated"}</span>
+        </div>
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, marginTop: (isMyCourse || session.available) ? 22 : 0 }}>
         <div style={{ width: 44, height: 44, borderRadius: 13, background: session.color + "22", border: `1.5px solid ${session.color}66`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: session.color, fontFamily: "'Syne', sans-serif", flexShrink: 0 }}>{session.initials}</div>
         <div>
           <div style={{ color: T.text, fontWeight: 600, fontSize: 14 }}>{session.name}</div>
@@ -590,15 +604,100 @@ function PostModal({ onClose, T }) {
   );
 }
 
+// ── Rating Modal ──────────────────────────────────────────────────────────────
+function RatingModal({ session, onDone, T }) {
+  const [thumbs, setThumbs] = useState(null); // "up" | "down"
+  const [tags, setTags]     = useState([]);
+  const [done, setDone]     = useState(false);
+
+  const positiveTags = ["Explained well", "Stayed focused", "Great energy", "On time", "Helpful"];
+  const negativeTags = ["Went off topic", "Distracted", "Unprepared", "No show"];
+  const activeTags   = thumbs === "up" ? positiveTags : thumbs === "down" ? negativeTags : [];
+
+  function toggleTag(tag) {
+    setTags(t => t.includes(tag) ? t.filter(x => x !== tag) : [...t, tag]);
+  }
+
+  function submit() {
+    setDone(true);
+    setTimeout(onDone, 1800);
+  }
+
+  if (done) return (
+    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 24, padding: 48, textAlign: "center", maxWidth: 360 }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>⭐</div>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 8 }}>Thanks for the feedback!</div>
+        <div style={{ color: T.subtext, fontSize: 14 }}>It helps improve future matches.</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 24 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 24, padding: 36, maxWidth: 420, width: "100%" }}>
+
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>📚</div>
+          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 6 }}>How was the session?</div>
+          <div style={{ color: T.subtext, fontSize: 13 }}>with {session.name} · {session.course}</div>
+        </div>
+
+        {/* Thumbs */}
+        <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+          {[["up", "👍", "Great session!"], ["down", "👎", "Not for me"]].map(([val, emoji, label]) => (
+            <button key={val} onClick={() => { setThumbs(val); setTags([]); }} style={{
+              flex: 1, padding: "18px 12px", borderRadius: 16, cursor: "pointer", textAlign: "center",
+              border: `1.5px solid ${thumbs === val ? (val === "up" ? T.teal : "#F87171") : T.cardBorder}`,
+              background: thumbs === val ? (val === "up" ? T.tealDim : "#F8717115") : T.surface,
+              transition: "all 0.15s",
+            }}>
+              <div style={{ fontSize: 28, marginBottom: 6 }}>{emoji}</div>
+              <div style={{ color: thumbs === val ? (val === "up" ? T.teal : "#F87171") : T.muted, fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{label}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Tags */}
+        {thumbs && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ color: T.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 12 }}>What stood out?</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {activeTags.map(tag => (
+                <button key={tag} onClick={() => toggleTag(tag)} style={{
+                  padding: "7px 14px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontWeight: 600,
+                  fontFamily: "'DM Sans', sans-serif",
+                  border: `1px solid ${tags.includes(tag) ? T.accent : T.cardBorder}`,
+                  background: tags.includes(tag) ? T.accentDim : T.surface,
+                  color: tags.includes(tag) ? T.accentText : T.muted,
+                  transition: "all 0.15s",
+                }}>{tags.includes(tag) ? "✓ " : ""}{tag}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onDone} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1px solid ${T.cardBorder}`, background: "transparent", color: T.muted, cursor: "pointer", fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>Skip</button>
+          <button onClick={submit} disabled={!thumbs} style={{ flex: 2, padding: "12px", borderRadius: 12, border: "none", background: thumbs ? T.accent : T.accentDim, color: thumbs ? "#13111C" : T.muted, cursor: thumbs ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", transition: "all 0.2s" }}>Submit Rating</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main App ───────────────────────────────────────────────────────────────────
 function MainApp({ user: initialUser }) {
-  const [user, setUser]           = useState(initialUser);
+  const [user, setUser]           = useState({ ...initialUser, available: true });
   const [mode, setMode]           = useState("dark");
   const [tab, setTab]             = useState("discover");
   const [showPost, setShowPost]   = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [joined, setJoined]       = useState([]);
   const [activeRoom, setActiveRoom] = useState(null);
+  const [ratingSession, setRatingSession] = useState(null);
+  const [ratings, setRatings]     = useState({}); // sessionId -> { thumbs, tags }
   const [filter, setFilter]       = useState("");
 
   const T = buildTheme(user.schoolTheme, mode);
@@ -613,8 +712,9 @@ function MainApp({ user: initialUser }) {
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'DM Sans', sans-serif", transition: "background 0.3s" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
       {showPost    && <PostModal    onClose={() => setShowPost(false)} T={T} />}
-      {activeRoom  && <SessionRoom  session={activeRoom} user={user} onClose={() => setActiveRoom(null)} T={T} />}
+      {activeRoom  && <SessionRoom  session={activeRoom} user={user} onClose={() => { setRatingSession(activeRoom); setActiveRoom(null); }} T={T} />}
       {showProfile && <ProfileModal user={user} onSave={u => { setUser(u); setShowProfile(false); }} onClose={() => setShowProfile(false)} T={T} />}
+      {ratingSession && <RatingModal session={ratingSession} onDone={() => setRatingSession(null)} T={T} />}
 
       {/* Navbar */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 40px", height: 62, background: T.card, borderBottom: `1px solid ${T.cardBorder}`, position: "sticky", top: 0, zIndex: 50 }}>
@@ -635,6 +735,18 @@ function MainApp({ user: initialUser }) {
 
           <button onClick={() => setMode(m => m === "dark" ? "light" : "dark")} style={{ padding: "7px 14px", borderRadius: 20, border: `1px solid ${T.cardBorder}`, background: T.surface, color: T.subtext, fontSize: 13, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 5, fontWeight: 500 }}>{mode === "dark" ? "☀️ Light" : "🌙 Dark"}</button>
           <button onClick={() => setShowPost(true)} style={{ padding: "8px 18px", borderRadius: 20, border: "none", background: T.accent, color: "#13111C", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>+ Post Session</button>
+          {/* Availability toggle */}
+          <button onClick={() => setUser(u => ({ ...u, available: !u.available }))} style={{
+            padding: "7px 14px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontWeight: 600,
+            fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", gap: 6,
+            border: `1px solid ${user.available ? T.teal + "66" : T.cardBorder}`,
+            background: user.available ? T.tealDim : T.surface,
+            color: user.available ? T.teal : T.muted,
+            transition: "all 0.2s",
+          }}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: user.available ? T.teal : T.muted, flexShrink: 0 }} />
+            {user.available ? "Available" : "Busy"}
+          </button>
           <button onClick={() => setShowProfile(true)} style={{ width: 34, height: 34, borderRadius: 10, background: T.accentDim, border: `1px solid ${T.accent}55`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: T.accentText, fontFamily: "'Syne', sans-serif", cursor: "pointer" }}>
             {user.name?.[0]?.toUpperCase() || "?"}
           </button>
@@ -663,7 +775,7 @@ function MainApp({ user: initialUser }) {
               <div style={{ flex: 1, height: 1, background: T.cardBorder }} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18, marginBottom: 36 }}>
-              {myCourseSessions.map(s => <SessionCard key={s.id} session={s} onJoin={s => setJoined(j => [...j, s])} onOpenRoom={setActiveRoom} userCourses={user.courses || ""} T={T} />)}
+              {myCourseSessions.map(s => <SessionCard key={s.id} session={s} onJoin={s => setJoined(j => [...j, s])} onOpenRoom={setActiveRoom} userCourses={user.courses || ""} rating={ratings[s.id]} T={T} />)}
             </div>
           </>}
 
@@ -673,7 +785,7 @@ function MainApp({ user: initialUser }) {
               <div style={{ flex: 1, height: 1, background: T.cardBorder }} />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 18 }}>
-              {otherSessions.map(s => <SessionCard key={s.id} session={s} onJoin={s => setJoined(j => [...j, s])} onOpenRoom={setActiveRoom} userCourses={user.courses || ""} T={T} />)}
+              {otherSessions.map(s => <SessionCard key={s.id} session={s} onJoin={s => setJoined(j => [...j, s])} onOpenRoom={setActiveRoom} userCourses={user.courses || ""} rating={ratings[s.id]} T={T} />)}
             </div>
           </>}
         </div>
