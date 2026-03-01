@@ -687,6 +687,241 @@ function RatingModal({ session, onDone, T }) {
   );
 }
 
+// ── Calendar Tab ──────────────────────────────────────────────────────────────
+const DAYS   = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const HOURS  = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+const HOUR_LABEL = h => h === 12 ? "12pm" : h < 12 ? `${h}am` : `${h - 12}pm`;
+
+// Sample other students' availability
+const OTHER_STUDENTS = [
+  { id: 1, name: "Priya Sharma",  initials: "PS", color: "#A78BFA", course: "MATH 221", slots: [{day:"Mon",hour:10},{day:"Mon",hour:11},{day:"Wed",hour:14},{day:"Wed",hour:15},{day:"Fri",hour:9}] },
+  { id: 2, name: "Marcus Webb",   initials: "MW", color: "#5EEAD4", course: "CS 310",   slots: [{day:"Tue",hour:13},{day:"Tue",hour:14},{day:"Thu",hour:10},{day:"Thu",hour:11},{day:"Sat",hour:11}] },
+  { id: 3, name: "Zara Ahmed",    initials: "ZA", color: "#F9A8D4", course: "PSYC 181", slots: [{day:"Mon",hour:14},{day:"Wed",hour:10},{day:"Wed",hour:11},{day:"Fri",hour:13},{day:"Fri",hour:14}] },
+  { id: 4, name: "Lily Chen",     initials: "LC", color: "#86EFAC", course: "BIOS 101", slots: [{day:"Tue",hour:9},{day:"Tue",hour:10},{day:"Thu",hour:14},{day:"Sun",hour:15}] },
+];
+
+function CalendarTab({ user, mySlots, setMySlots, T }) {
+  const [scheduleSlot, setScheduleSlot] = useState(null); // {day, hour} to schedule
+  const [scheduled, setScheduled]       = useState([]); // [{day,hour,student}]
+  const [view, setView]                 = useState("week"); // "week" | "students"
+
+  function toggleMySlot(day, hour) {
+    const key = `${day}-${hour}`;
+    const exists = mySlots.find(s => s.day === day && s.hour === hour);
+    if (exists) setMySlots(s => s.filter(x => !(x.day === day && x.hour === hour)));
+    else setMySlots(s => [...s, { day, hour }]);
+  }
+
+  function getOverlap(day, hour) {
+    return OTHER_STUDENTS.filter(s => s.slots.some(sl => sl.day === day && sl.hour === hour));
+  }
+
+  function isMySlot(day, hour) {
+    return mySlots.some(s => s.day === day && s.hour === hour);
+  }
+
+  function isScheduled(day, hour) {
+    return scheduled.some(s => s.day === day && s.hour === hour);
+  }
+
+  const totalOverlaps = DAYS.flatMap(d => HOURS.map(h => ({ day: d, hour: h, count: getOverlap(d, h).length }))).filter(x => x.count > 0 && isMySlot(x.day, x.hour));
+
+  return (
+    <div style={{ padding: "32px 40px" }}>
+      {scheduleSlot && (
+        <ScheduleModal
+          slot={scheduleSlot}
+          students={getOverlap(scheduleSlot.day, scheduleSlot.hour)}
+          onSchedule={(student) => {
+            setScheduled(s => [...s, { ...scheduleSlot, student }]);
+            setScheduleSlot(null);
+          }}
+          onClose={() => setScheduleSlot(null)}
+          T={T}
+        />
+      )}
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28 }}>
+        <div>
+          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 24, fontWeight: 700, color: T.text, marginBottom: 4 }}>📅 Availability Calendar</div>
+          <div style={{ color: T.subtext, fontSize: 14 }}>
+            {mySlots.length === 0
+              ? "Click cells to mark when you're free — we'll find overlaps with your matches."
+              : `You're free ${mySlots.length} hour${mySlots.length > 1 ? "s" : ""} this week · ${totalOverlaps.length} overlap${totalOverlaps.length !== 1 ? "s" : ""} with matches`}
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* Legend */}
+          <div style={{ display: "flex", gap: 16, alignItems: "center", marginRight: 8 }}>
+            {[
+              { color: T.accentDim, border: T.accent, label: "Your free time" },
+              { color: T.tealDim,   border: T.teal,   label: "Overlap" },
+            ].map(l => (
+              <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 14, height: 14, borderRadius: 4, background: l.color, border: `1.5px solid ${l.border}` }} />
+                <span style={{ color: T.muted, fontSize: 12 }}>{l.label}</span>
+              </div>
+            ))}
+          </div>
+          {mySlots.length > 0 && (
+            <button onClick={() => setMySlots([])} style={{ padding: "7px 14px", borderRadius: 20, border: `1px solid ${T.cardBorder}`, background: "transparent", color: T.muted, fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Clear all</button>
+          )}
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 20, overflow: "hidden" }}>
+        {/* Day headers */}
+        <div style={{ display: "grid", gridTemplateColumns: "60px repeat(7, 1fr)", borderBottom: `1px solid ${T.cardBorder}` }}>
+          <div />
+          {DAYS.map(d => (
+            <div key={d} style={{ padding: "14px 8px", textAlign: "center", color: T.subtext, fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", borderLeft: `1px solid ${T.cardBorder}` }}>{d}</div>
+          ))}
+        </div>
+
+        {/* Time rows */}
+        {HOURS.map(hour => (
+          <div key={hour} style={{ display: "grid", gridTemplateColumns: "60px repeat(7, 1fr)", borderBottom: `1px solid ${T.cardBorder}` }}>
+            {/* Hour label */}
+            <div style={{ padding: "10px 8px", display: "flex", alignItems: "center", justifyContent: "flex-end", color: T.muted, fontSize: 11, fontWeight: 500, paddingRight: 12 }}>{HOUR_LABEL(hour)}</div>
+
+            {/* Day cells */}
+            {DAYS.map(day => {
+              const mine    = isMySlot(day, hour);
+              const overlap = getOverlap(day, hour);
+              const hasOverlap = mine && overlap.length > 0;
+              const sched  = isScheduled(day, hour);
+
+              return (
+                <div
+                  key={day}
+                  onClick={() => {
+                    if (hasOverlap && !sched) setScheduleSlot({ day, hour });
+                    else toggleMySlot(day, hour);
+                  }}
+                  style={{
+                    borderLeft: `1px solid ${T.cardBorder}`,
+                    minHeight: 44,
+                    cursor: "pointer",
+                    background: sched
+                      ? T.accent + "33"
+                      : hasOverlap
+                        ? T.tealDim
+                        : mine
+                          ? T.accentDim
+                          : "transparent",
+                    border: sched
+                      ? `1px solid ${T.accent}88`
+                      : hasOverlap
+                        ? `1px solid ${T.teal}55`
+                        : mine
+                          ? `1px solid ${T.accent}44`
+                          : `1px solid transparent`,
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                    gap: 3, transition: "background 0.15s", position: "relative",
+                  }}
+                  onMouseEnter={e => { if (!mine && !hasOverlap) e.currentTarget.style.background = T.surface; }}
+                  onMouseLeave={e => { if (!mine && !hasOverlap && !sched) e.currentTarget.style.background = "transparent"; }}
+                >
+                  {sched && <span style={{ fontSize: 10, color: T.accentText, fontWeight: 700 }}>📅 Scheduled</span>}
+                  {hasOverlap && !sched && (
+                    <div style={{ display: "flex", gap: 2, flexWrap: "wrap", justifyContent: "center", padding: 4 }}>
+                      {overlap.map(s => (
+                        <div key={s.id} title={s.name} style={{ width: 18, height: 18, borderRadius: 5, background: s.color + "44", border: `1px solid ${s.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 8, fontWeight: 700, color: s.color }}>{s.initials[0]}</div>
+                      ))}
+                    </div>
+                  )}
+                  {mine && !hasOverlap && !sched && <div style={{ width: 6, height: 6, borderRadius: "50%", background: T.accent }} />}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      {/* Upcoming scheduled sessions */}
+      {scheduled.length > 0 && (
+        <div style={{ marginTop: 32 }}>
+          <div style={{ color: T.accentText, fontSize: 12, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 16 }}>📅 Scheduled Sessions</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+            {scheduled.map((s, i) => (
+              <div key={i} style={{ background: T.card, border: `1px solid ${T.accent}44`, borderRadius: 16, padding: 20, display: "flex", gap: 14, alignItems: "center" }}>
+                <div style={{ width: 40, height: 40, borderRadius: 11, background: s.student.color + "22", border: `1.5px solid ${s.student.color}66`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: s.student.color, flexShrink: 0 }}>{s.student.initials}</div>
+                <div>
+                  <div style={{ color: T.text, fontWeight: 600, fontSize: 14, marginBottom: 3 }}>{s.student.name}</div>
+                  <div style={{ color: T.subtext, fontSize: 12 }}>{s.day} · {HOUR_LABEL(s.hour)} · {s.student.course}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Schedule Modal ─────────────────────────────────────────────────────────────
+function ScheduleModal({ slot, students, onSchedule, onClose, T }) {
+  const [selected, setSelected] = useState(null);
+  const [confirmed, setConfirmed] = useState(false);
+
+  function confirm() {
+    setConfirmed(true);
+    setTimeout(() => { onSchedule(selected); }, 1600);
+  }
+
+  if (confirmed) return (
+    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 24, padding: 48, textAlign: "center", maxWidth: 360 }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
+        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: T.text, marginBottom: 8 }}>Session Scheduled!</div>
+        <div style={{ color: T.subtext, fontSize: 14 }}>{selected.name} has been notified for {slot.day} at {HOUR_LABEL(slot.hour)}.</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300, padding: 24 }}>
+      <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 24, padding: 36, maxWidth: 420, width: "100%" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <div>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 18, fontWeight: 700, color: T.text }}>Schedule a Session</div>
+            <div style={{ color: T.subtext, fontSize: 13, marginTop: 4 }}>{slot.day} · {HOUR_LABEL(slot.hour)}</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 18 }}>✕</button>
+        </div>
+
+        <div style={{ color: T.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 12 }}>Available at this time</div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+          {students.map(s => (
+            <button key={s.id} onClick={() => setSelected(s)} style={{
+              display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
+              borderRadius: 14, cursor: "pointer", textAlign: "left",
+              border: `1.5px solid ${selected?.id === s.id ? T.accent : T.cardBorder}`,
+              background: selected?.id === s.id ? T.accentDim : T.surface,
+              transition: "all 0.15s",
+            }}>
+              <div style={{ width: 40, height: 40, borderRadius: 11, background: s.color + "22", border: `1.5px solid ${s.color}66`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: s.color, flexShrink: 0 }}>{s.initials}</div>
+              <div>
+                <div style={{ color: T.text, fontWeight: 600, fontSize: 14 }}>{s.name}</div>
+                <div style={{ color: T.muted, fontSize: 12, marginTop: 2 }}>{s.course}</div>
+              </div>
+              {selected?.id === s.id && <span style={{ marginLeft: "auto", color: T.accent, fontWeight: 800, fontSize: 16 }}>✓</span>}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1px solid ${T.cardBorder}`, background: "transparent", color: T.muted, cursor: "pointer", fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
+          <button onClick={confirm} disabled={!selected} style={{ flex: 2, padding: "12px", borderRadius: 12, border: "none", background: selected ? T.accent : T.accentDim, color: selected ? "#13111C" : T.muted, cursor: selected ? "pointer" : "not-allowed", fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans', sans-serif" }}>Schedule →</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main App ───────────────────────────────────────────────────────────────────
 function MainApp({ user: initialUser }) {
   const [user, setUser]           = useState({ ...initialUser, available: true });
@@ -699,6 +934,7 @@ function MainApp({ user: initialUser }) {
   const [ratingSession, setRatingSession] = useState(null);
   const [ratings, setRatings]     = useState({}); // sessionId -> { thumbs, tags }
   const [filter, setFilter]       = useState("");
+  const [mySlots, setMySlots]     = useState([]); // [{day, hour}]
 
   const T = buildTheme(user.schoolTheme, mode);
 
@@ -725,7 +961,7 @@ function MainApp({ user: initialUser }) {
 
         {/* Center: tabs */}
         <div style={{ display: "flex", gap: 6 }}>
-          {["discover", "my sessions"].map(t => (
+          {["discover", "my sessions", "calendar"].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{ padding: "7px 18px", borderRadius: 20, border: `1px solid ${tab === t ? T.accent + "88" : T.cardBorder}`, background: tab === t ? T.accentDim : "transparent", color: tab === t ? T.accentText : T.muted, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", textTransform: "capitalize" }}>{t}</button>
           ))}
         </div>
@@ -789,6 +1025,12 @@ function MainApp({ user: initialUser }) {
             </div>
           </>}
         </div>
+      )}
+
+
+      {/* Calendar */}
+      {tab === "calendar" && (
+        <CalendarTab user={user} mySlots={mySlots} setMySlots={setMySlots} T={T} />
       )}
 
       {/* My Sessions */}
