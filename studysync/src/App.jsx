@@ -426,7 +426,7 @@ function PostModal({ onClose, T }) {
   );
 }
 
-// ── Profile Modal ─────────────────────────────────────────────────────────────
+// ── Profile Modal ──────────────────────────────────────────────────────────────
 function ProfileModal({ user, onSave, onClose, T }) {
   const [form, setForm] = useState({ ...user });
   const styleOptions = ["Practice Problems", "Discussion-based", "Visual / diagrams", "Flashcards + quizzing"];
@@ -443,13 +443,12 @@ function ProfileModal({ user, onSave, onClose, T }) {
     <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 24 }}>
       <div style={{ background: T.card, border: `1px solid ${T.cardBorder}`, borderRadius: 24, padding: 36, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}>
 
-        {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
           <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 20, fontWeight: 700, color: T.text }}>Edit Profile</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 18 }}>✕</button>
         </div>
 
-        {/* Avatar */}
+        {/* Avatar preview */}
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 28, padding: "16px 20px", background: T.surface, borderRadius: 16, border: `1px solid ${T.cardBorder}` }}>
           <div style={{
             width: 56, height: 56, borderRadius: 16, background: T.accentDim,
@@ -464,9 +463,7 @@ function ProfileModal({ user, onSave, onClose, T }) {
           </div>
         </div>
 
-        {/* Fields */}
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-
           {[
             { label: "Name", key: "name", placeholder: "e.g. Jordan" },
             { label: "University", key: "university", placeholder: "e.g. University of Nebraska-Lincoln" },
@@ -479,7 +476,7 @@ function ProfileModal({ user, onSave, onClose, T }) {
             </div>
           ))}
 
-          {/* Study Style multi-select */}
+          {/* Study Style */}
           <div>
             <div style={{ color: T.muted, fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10 }}>Study Style</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -517,7 +514,7 @@ function ProfileModal({ user, onSave, onClose, T }) {
                   padding: "11px 14px", borderRadius: 12, cursor: "pointer", textAlign: "left",
                   fontSize: 13, fontFamily: "'DM Sans', sans-serif", fontWeight: 500,
                   border: `1px solid ${form.level === opt ? T.teal : T.cardBorder}`,
-                  background: form.level === opt ? T.tealDim : T.surface,
+                  background: form.level === opt ? "#0D3330" : T.surface, 
                   color: form.level === opt ? T.teal : T.subtext,
                   transition: "all 0.15s",
                 }}>{opt}</button>
@@ -526,7 +523,6 @@ function ProfileModal({ user, onSave, onClose, T }) {
           </div>
         </div>
 
-        {/* Save */}
         <button onClick={() => onSave(form)} style={{
           marginTop: 28, width: "100%", padding: "14px", borderRadius: 14, border: "none",
           background: T.accent, color: "#13111C", fontSize: 15, fontWeight: 700,
@@ -543,12 +539,12 @@ function MainApp({ user: initialUser, school }) {
   const T = mode === "dark" ? DARK : LIGHT;
   const [tab, setTab] = useState("discover");
   const [showPost, setShowPost] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
+  const [showProfile, setShowProfile] = useState(false); 
   const [joined, setJoined] = useState([]);
   const [filter, setFilter] = useState("");
   const [user, setUser] = useState(initialUser);
+  const [activeRoom, setActiveRoom] = useState(null); 
 
-  // Use school colors for accent when available
   const accentColor = school?.primary || T.accent;
   const accentDim = school?.accentDim || T.accentDim;
   const accentText = school?.accentText || T.accentText;
@@ -560,9 +556,18 @@ function MainApp({ user: initialUser, school }) {
   return (
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'DM Sans', sans-serif", transition: "background 0.3s" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
-      {showPost && <PostModal onClose={() => setShowPost(false)} T={T} />}
 
-      {activeRoom && <SessionRoom session={activeRoom} user={user} onClose={() => setActiveRoom(null)} T={T} />}
+      {showPost && <PostModal onClose={() => setShowPost(false)} T={T} />}
+      
+      {showProfile && (
+        <ProfileModal
+          user={user}
+          onSave={(updated) => { setUser(updated); setShowProfile(false); }}
+          onClose={() => setShowProfile(false)}
+          T={T}
+        />
+      )}
+      
 
       {/* Navbar */}
       <div style={{
@@ -571,8 +576,7 @@ function MainApp({ user: initialUser, school }) {
         background: T.card, borderBottom: `1px solid ${T.cardBorder}`,
         position: "sticky", top: 0, zIndex: 50,
       }}>
-
-        {/* Logo — clean, just studysync text */}
+        {/* Logo */}
         <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 21, fontWeight: 800, letterSpacing: -0.5 }}>
           <span style={{ color: accentColor }}>study</span>
           <span style={{ color: school?.secondary || T.teal }}>sync</span>
@@ -594,15 +598,13 @@ function MainApp({ user: initialUser, school }) {
 
         {/* Right side */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-
-          {/* Post session button */}
           <button onClick={() => setShowPost(true)} style={{
             padding: "8px 18px", borderRadius: 20, border: "none",
             background: accentColor, color: "#13111C", fontSize: 13, fontWeight: 700,
             cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
           }}>+ Post Session</button>
 
-          {/* Dark/Light toggle with school logo baked in */}
+          {/* Dark/Light toggle with school logo */}
           <button onClick={() => setMode(m => m === "dark" ? "light" : "dark")} style={{
             padding: "5px 14px 5px 6px", borderRadius: 20,
             border: `1px solid ${T.cardBorder}`,
@@ -629,7 +631,7 @@ function MainApp({ user: initialUser, school }) {
             {mode === "dark" ? "☀️ Light" : "🌙 Dark"}
           </button>
 
-          {/* User avatar */}
+          {/* User avatar — opens profile modal */}
           <button onClick={() => setShowProfile(true)} style={{
             width: 34, height: 34, borderRadius: 10, background: accentDim,
             border: `1px solid ${accentColor}55`, display: "flex", alignItems: "center",
